@@ -80,8 +80,12 @@ async function runQueries() {
     }
 
     console.log("[ Waiting for response ]");
+    // const responseContainer = await waitForElm(
+    //   `[data-rq="${query.prompt}"] [jsname].oD6fhb`
+    // );
+
     const responseContainer = await waitForElm(
-      `[data-rq="${query.prompt}"] [jsname].oD6fhb`
+      `[data-rq="${query.prompt}"] .LT6XE`
     );
 
     console.log("[ Got the response ]");
