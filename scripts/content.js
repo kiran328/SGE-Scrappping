@@ -1,5 +1,4 @@
-const BASE_URL = `https://vopa-time-tracing-default-rtdb.asia-southeast1.firebasedatabase.app/queries.json`;
-const query = "Tell me information on Mars planet";
+const BASE_URL = `https://brand-luminaire-default-rtdb.firebaseio.com`;
 
 function waitForElm(selector) {
   return new Promise((resolve) => {
@@ -29,108 +28,97 @@ const sleep = (time) => {
 
 let isQueryRunning = false;
 
-// setInterval(() => {
-//   if (isQueryRunning) return;
-//   runQueries();
-// }, 1000);
-
-
-console.log("LOG here... 1")
-
-runQueries();
-
+setInterval(() => {
+  if (isQueryRunning) return;
+  runQueries();
+}, 2000);
 
 async function runQueries() {
   try {
-    const { docKey, queries } = await getQueries();
-    console.log("LOG here.. data", docKey, queries)
+    const { queries } = await getQueries();
+
+    if(queries.length === 0) return;
+
+    const [query]  = queries;
+
     document.body.click();
 
-    let index = 0;
-    for (let query of queries) {
+    console.log("[ Taking 3000 FIRST ]");
+    await sleep(3000);
 
-      console.log("[ Taking 3000 FIRST ]")
-      await sleep(3000);
+    console.log("[ Waiting for Input box to appear]");
+    const inputParagraphElement = await waitForElm(
+      '[placeholder="Ask a follow up"]'
+    );
 
-      console.log("[ Waiting for Input box to appear]")
-      const inputParagraphElement = await waitForElm(
-        '[placeholder="Ask a follow up"]'
-      );
+    isQueryRunning = true;
 
-      if (query?.updatedAt) {
-        index++;
-        continue;
+    console.log("[ Writing into Input box ]", query.text);
+    inputParagraphElement.value = query.text;
+
+    console.log("[ Focusing into Input box ]");
+    inputParagraphElement.focus();
+
+    console.log("[ Taking 5000 pause ]");
+    await sleep(5000);
+
+    console.log("[ Finding Send button ]");
+    const submitBtn = document.querySelector('button[aria-label="Send"]');
+
+    console.log("[ Clicking Send button ]", submitBtn);
+    submitBtn.click();
+
+    const generateBtn = await waitForElm(
+      `[data-oq="${query.text}"] [role='button']`
+    );
+    if (generateBtn) {
+      const generateBtnSpan = generateBtn.querySelector(".clOx1e");
+      if (generateBtnSpan) {
+        console.log("[ Clicking Generate Button ]", generateBtnSpan);
+        generateBtnSpan.click();
       }
-      isQueryRunning = true;
-
-      console.log("[ Writing into Input box ]", query.text)
-      inputParagraphElement.value = query.text;
-
-      console.log("[ Focusing into Input box ]")
-      inputParagraphElement.focus();
-
-
-      console.log("[ Taking 5000 pause ]")
-      await sleep(5000);
-
-      console.log("[ Finding Send button ]")
-      const submitBtn = document.querySelector('button[aria-label="Send"]');
-
-      console.log("[ Clicking Send button ]", submitBtn)
-      submitBtn.click();
-
-      const generateBtn = await waitForElm( `[data-oq="${query.text}"] [role='button']`);
-      if(generateBtn) {
-        const generateBtnSpan = generateBtn.querySelector('.clOx1e')
-        if(generateBtnSpan) {
-          console.log("[ Clicking Generate Button ]", generateBtnSpan)
-          generateBtnSpan.click();
-        }
-      }
-
-      console.log("[ Waiting for response ]")
-      const responseContainer = await waitForElm(
-        `[data-rq="${query.text}"] .oD6fhb`
-      );
-
-      console.log("[ Got the response ]")
-      console.log(responseContainer);
-
-      const responseText = extractTextWithNewlines(responseContainer.innerHTML);
-
-      console.log(responseText);
-
-      let updatedData = [...queries];
-      updatedData[index].response = responseText;
-      updatedData[index].updatedAt = Date.now();
-      await updateQueryResponses({ [docKey]: updatedData });
-      await sleep(0);
-      // document.querySelector('[aria-label="New chat"] button').click();
-      isQueryRunning = false;
-      index++;
     }
+
+    console.log("[ Waiting for response ]");
+    const responseContainer = await waitForElm(
+      `[data-rq="${query.text}"] [jsname].oD6fhb`
+    );
+
+    console.log("[ Got the response ]");
+    console.log(responseContainer);
+
+    const responseText = extractTextWithNewlines(responseContainer.innerHTML);
+
+    console.log(responseText);
+    await updateQueryResponses(query.id, responseText);
+    await sleep(0);
+    isQueryRunning = false;
   } catch (error) {
     console.log("LOG Error: ", error);
-    // isQueryRunning = false;
-    // document.querySelector('[aria-label="New chat"] button').click();
   }
 }
 
 async function getQueries() {
-  const res = await fetch(BASE_URL);
+  const res = await fetch(`${BASE_URL}/sge.json`);
   let data = await res.json();
-  
-  const docKey = Object.keys(data).at(0);
-  data = data[docKey];
 
-  console.log("LOG da", docKey, data);
-  return { docKey, queries: data };
+  const updatedQueries = [];
+  for (let key in data) {
+    updatedQueries.push({
+      id: key,
+      ...data[key],
+    });
+  }
+  return { queries: updatedQueries.filter(query=> !query.updatedAt) };
 }
 
-async function updateQueryResponses(data) {
-  const res = await fetch(BASE_URL, {
+async function updateQueryResponses(id, responseText) {
+  const res = await fetch(`${BASE_URL}/sge/${id}.json`, {
     method: "PATCH",
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      response: responseText,
+      updatedAt: Date.now(),
+    }),
     headers: {
       "Content-Type": "application/json",
     },
