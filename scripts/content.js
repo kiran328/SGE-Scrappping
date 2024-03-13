@@ -53,8 +53,8 @@ async function runQueries() {
 
     isQueryRunning = true;
 
-    console.log("[ Writing into Input box ]", query.text);
-    inputParagraphElement.value = query.text;
+    console.log("[ Writing into Input box ]", query.prompt);
+    inputParagraphElement.value = query.prompt;
 
     console.log("[ Focusing into Input box ]");
     inputParagraphElement.focus();
@@ -69,7 +69,7 @@ async function runQueries() {
     submitBtn.click();
 
     const generateBtn = await waitForElm(
-      `[data-oq="${query.text}"] [role='button']`
+      `[data-oq="${query.prompt}"] [role='button']`
     );
     if (generateBtn) {
       const generateBtnSpan = generateBtn.querySelector(".clOx1e");
@@ -81,7 +81,7 @@ async function runQueries() {
 
     console.log("[ Waiting for response ]");
     const responseContainer = await waitForElm(
-      `[data-rq="${query.text}"] [jsname].oD6fhb`
+      `[data-rq="${query.prompt}"] [jsname].oD6fhb`
     );
 
     console.log("[ Got the response ]");
