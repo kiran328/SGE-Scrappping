@@ -48,7 +48,7 @@ async function runQueries() {
 
     console.log("[ Waiting for Input box to appear]");
     const inputParagraphElement = await waitForElm(
-      '[placeholder="Ask a follow up"]'
+      '[placeholder="Ask a follow up..."]'
     );
 
     isQueryRunning = true;
