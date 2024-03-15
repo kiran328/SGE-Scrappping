@@ -48,7 +48,7 @@ async function runQueries() {
 
     console.log("[ Waiting for Input box to appear]");
     const inputParagraphElement = await waitForElm(
-      '[placeholder="Ask a follow up"]'
+      '[placeholder="Ask a follow up..."]'
     );
 
     isQueryRunning = true;
@@ -90,21 +90,22 @@ async function runQueries() {
 
     const links = document.querySelector(`[data-rq="${query.prompt}"] .LT6XE [role='list']`);
     let responseText = extractTextWithNewlines(responseContainer.innerHTML);
+    responseText += "<br />";
 
     const anchors = links.querySelectorAll('a');
-    let anchorsMarkdownString = `\n`;
+   
     for(let anchor of anchors) {
-      anchorsMarkdownString += ` [${anchor.getAttribute("aria-label")}](${anchor.href}) 
-      
-      \n`;
+      responseText += `<a href="${anchor.href}" target="_blank">${anchor.getAttribute("aria-label")}</a> <br />`;
     }
 
-    responseText += anchorsMarkdownString;
     await updateQueryResponses(query.id, responseText);
     await sleep(0);
     isQueryRunning = false;
+    window.location.href = "https://www.google.com/search?q=Why+is+popcorn+associated+with+movies&authuser=0&hl=en&source=searchlabs";
+
   } catch (error) {
     console.log("LOG Error: ", error);
+    window.location.href = "https://www.google.com/search?q=Why+is+popcorn+associated+with+movies&authuser=0&hl=en&source=searchlabs";
   }
 }
 
