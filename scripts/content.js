@@ -48,7 +48,7 @@ async function runQueries() {
 
     console.log("[ Waiting for Input box to appear]");
     const inputParagraphElement = await waitForElm(
-      '[placeholder="Ask a follow up..."]'
+      '[placeholder="Ask a follow up"]'
     );
 
     isQueryRunning = true;
@@ -85,15 +85,21 @@ async function runQueries() {
     // );
 
     const responseContainer = await waitForElm(
-      `[data-rq="${query.prompt}"] .LT6XE`
+      `[data-rq="${query.prompt}"] .LT6XE >:not([role='list'])`
     );
 
-    console.log("[ Got the response ]");
-    console.log(responseContainer);
+    const links = document.querySelector(`[data-rq="${query.prompt}"] .LT6XE [role='list']`);
+    let responseText = extractTextWithNewlines(responseContainer.innerHTML);
 
-    const responseText = extractTextWithNewlines(responseContainer.innerHTML);
+    const anchors = links.querySelectorAll('a');
+    let anchorsMarkdownString = `\n`;
+    for(let anchor of anchors) {
+      anchorsMarkdownString += ` [${anchor.getAttribute("aria-label")}](${anchor.href}) 
+      
+      \n`;
+    }
 
-    console.log(responseText);
+    responseText += anchorsMarkdownString;
     await updateQueryResponses(query.id, responseText);
     await sleep(0);
     isQueryRunning = false;
@@ -139,7 +145,8 @@ function extractTextWithNewlines(html) {
       text += node.nodeValue.trim() + "\n";
     } else if (
       node.nodeType === Node.ELEMENT_NODE &&
-      node.tagName.toLowerCase() !== "script"
+      node.tagName.toLowerCase() !== "script" && 
+      !node.hasAttribute("role")
     ) {
       text += extractTextWithNewlines(node.innerHTML);
     }
