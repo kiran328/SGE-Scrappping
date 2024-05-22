@@ -1,4 +1,4 @@
-const BASE_URL = `https://brand-luminaire-default-rtdb.firebaseio.com`;
+const BASE_URL = `https://brand-luminaire-default-rtdb.firebaseio.com/sge`;
 
 function waitForElm(selector) {
   return new Promise((resolve) => {
@@ -26,10 +26,40 @@ const sleep = (time) => {
   });
 };
 
-let isQueryRunning = false;
+let isQueryRunning = localStorage.getItem("isQueryRunning") || "0";
 
-setInterval(() => {
-  if (isQueryRunning) return;
+setInterval(async () => {
+  if (isQueryRunning === "1") {
+    console.log("[ Waiting for response ]");
+
+    let query = localStorage.getItem("query");
+    query = JSON.parse(query);
+
+    const responseContainer = await waitForElm(`.LT6XE >:not([role='list'])`);
+
+    const links = document.querySelector(`.LT6XE [role='list']`);
+    let responseText = responseContainer.innerText;
+    responseText += "<br />";
+    const anchors = links.querySelectorAll("a");
+    for (let anchor of anchors) {
+      responseText += `<a href="${
+        anchor.href
+      }" target="_blank">${anchor.getAttribute("aria-label")}</a> <br />`;
+    }
+
+    console.log("🔥🔥🔥🔥🔥🔥🔥🔥");
+    console.log(query);
+    console.log(responseText);
+
+    await updateQueryResponses(query.id, responseText);
+    await sleep(0);
+    localStorage.setItem("isQueryRunning", "0");
+    localStorage.setItem("query", "");
+    window.location.href =
+    "https://www.google.com/search?q=Why+is+popcorn+associated+with+movies&authuser=0&hl=en&source=searchlabs";
+
+    return;
+  }
   runQueries();
 }, 2000);
 
@@ -37,9 +67,11 @@ async function runQueries() {
   try {
     const { queries } = await getQueries();
 
-    if(queries.length === 0) return;
+    if (queries.length === 0) return;
 
-    const [query]  = queries;
+    const [query] = queries;
+
+    console.log("Query", query);
 
     document.body.click();
 
@@ -48,10 +80,13 @@ async function runQueries() {
 
     console.log("[ Waiting for Input box to appear]");
     const inputParagraphElement = await waitForElm(
-      '[placeholder="Ask a follow up..."]'
+      'textarea[aria-label="Search"]'
     );
 
-    isQueryRunning = true;
+    // isQueryRunning = true;
+    localStorage.setItem("isQueryRunning", "1");
+
+    localStorage.setItem("query", JSON.stringify(query));
 
     console.log("[ Writing into Input box ]", query.prompt);
     inputParagraphElement.value = query.prompt;
@@ -63,49 +98,44 @@ async function runQueries() {
     await sleep(5000);
 
     console.log("[ Finding Send button ]");
-    const submitBtn = document.querySelector('button[aria-label="Send"]');
+    const submitBtn = document.querySelector(
+      'button[aria-label="Search"][type="submit"]'
+    );
+
+    console.log(submitBtn);
 
     console.log("[ Clicking Send button ]", submitBtn);
     submitBtn.click();
 
-    const generateBtn = await waitForElm(
-      `[data-oq="${query.prompt}"] [role='button']`
-    );
-    if (generateBtn) {
-      const generateBtnSpan = generateBtn.querySelector(".clOx1e");
-      if (generateBtnSpan) {
-        console.log("[ Clicking Generate Button ]", generateBtnSpan);
-        generateBtnSpan.click();
-      }
-    }
-
-    console.log("[ Waiting for response ]");
-    // const responseContainer = await waitForElm(
-    //   `[data-rq="${query.prompt}"] [jsname].oD6fhb`
+    // const generateBtn = await waitForElm(
+    //   `[data-oq="${query.prompt}"] [role='button']`
     // );
+    // if (generateBtn) {
+    //   const generateBtnSpan = generateBtn.querySelector(".clOx1e");
+    //   if (generateBtnSpan) {
+    //     console.log("[ Clicking Generate Button ]", generateBtnSpan);
+    //     generateBtnSpan.click();
+    //   }
+    // }
 
-    const responseContainer = await waitForElm(
-      `[data-rq="${query.prompt}"] .LT6XE >:not([role='list'])`
-    );
+    // const links = document.querySelector(`[data-rq="${query.prompt}"] .LT6XE [role='list']`);
+    // let responseText = extractTextWithNewlines(responseContainer.innerHTML);
+    // responseText += "<br />";
 
-    const links = document.querySelector(`[data-rq="${query.prompt}"] .LT6XE [role='list']`);
-    let responseText = extractTextWithNewlines(responseContainer.innerHTML);
-    responseText += "<br />";
+    // const anchors = links.querySelectorAll('a');
 
-    const anchors = links.querySelectorAll('a');
-   
-    for(let anchor of anchors) {
-      responseText += `<a href="${anchor.href}" target="_blank">${anchor.getAttribute("aria-label")}</a> <br />`;
-    }
+    // for(let anchor of anchors) {
+    //   responseText += `<a href="${anchor.href}" target="_blank">${anchor.getAttribute("aria-label")}</a> <br />`;
+    // }
 
-    await updateQueryResponses(query.id, responseText);
-    await sleep(0);
-    isQueryRunning = false;
-    window.location.href = "https://www.google.com/search?q=Why+is+popcorn+associated+with+movies&authuser=0&hl=en&source=searchlabs";
-
+    // await updateQueryResponses(query.id, responseText);
+    // await sleep(0);
+    // localStorage.setItem("isQueryRunning", "0");
+    // window.location.href = "https://www.google.com/search?q=Why+is+popcorn+associated+with+movies&authuser=0&hl=en&source=searchlabs";
   } catch (error) {
     console.log("LOG Error: ", error);
-    window.location.href = "https://www.google.com/search?q=Why+is+popcorn+associated+with+movies&authuser=0&hl=en&source=searchlabs";
+    window.location.href =
+      "https://www.google.com/search?q=Why+is+popcorn+associated+with+movies&authuser=0&hl=en&source=searchlabs";
   }
 }
 
@@ -120,7 +150,7 @@ async function getQueries() {
       ...data[key],
     });
   }
-  return { queries: updatedQueries.filter(query=> !query.updatedAt) };
+  return { queries: updatedQueries.filter((query) => !query.updatedAt) };
 }
 
 async function updateQueryResponses(id, responseText) {
@@ -146,7 +176,7 @@ function extractTextWithNewlines(html) {
       text += node.nodeValue.trim() + "\n";
     } else if (
       node.nodeType === Node.ELEMENT_NODE &&
-      node.tagName.toLowerCase() !== "script" && 
+      node.tagName.toLowerCase() !== "script" &&
       !node.hasAttribute("role")
     ) {
       text += extractTextWithNewlines(node.innerHTML);
