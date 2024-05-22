@@ -1,4 +1,4 @@
-const BASE_URL = `https://brand-luminaire-default-rtdb.firebaseio.com/sge`;
+const BASE_URL = `https://brand-luminaire-default-rtdb.firebaseio.com`;
 
 function waitForElm(selector) {
   return new Promise((resolve) => {
